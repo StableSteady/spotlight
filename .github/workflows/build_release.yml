@@ -1,0 +1,53 @@
+name: Build Release
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  QT_VERSION: 6.5.0
+  QT_ARCH: win64_msvc2019_64
+
+  # Configuration type to build
+  BUILD_CONFIGURATION: Release
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+      
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        aqtversion: '==3.1.*'
+        version: '${{env.QT_VERSION}}'
+        host: 'windows'
+        target: 'desktop'
+        arch: '${{env.QT_ARCH}}'
+        dir: '${{env.GITHUB_WORKSPACE}}'
+        cache: 'true'
+
+    - name: Build
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        mkdir build
+        mkdir install
+        cd build
+        cmake -DCMAKE_PREFIX_PATH="${{env.GITHUB_WORKSPACE}}Qt/${{env.QT_VERSION}}/${{env.QT_ARCH}}" -DCMAKE_INSTALL_PREFIX="..\install" -DCMAKE_CONFIGURATION_TYPES=Release ..
+        cmake --build . --config Release
+        cmake --install .
+      
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        path: '${{env.GITHUB_WORKSPACE}}install'
